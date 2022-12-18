@@ -1,0 +1,4 @@
+.helm
+werf.yaml
+.werf_secret_key
+vendor

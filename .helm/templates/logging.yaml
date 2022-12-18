@@ -1,0 +1,11 @@
+---
+apiVersion: deckhouse.io/v1alpha1
+kind: PodLoggingConfig
+metadata:
+  name: {{ include ".helm.fullname" . }}
+spec:
+  labelSelector:
+    matchLabels:
+      app: {{ include ".helm.fullname" . }}
+  clusterDestinationRefs:
+    - loki

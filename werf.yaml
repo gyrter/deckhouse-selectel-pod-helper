@@ -1,0 +1,8 @@
+project: pod-helper
+configVersion: 1
+deploy:
+  namespace: pod-helper
+  helmRelease: pod-helper-main
+---
+image: operator
+dockerfile: docker/operator/Dockerfile

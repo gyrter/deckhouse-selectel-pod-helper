@@ -1,0 +1,72 @@
+{{- $port := pluck .Values.global.env .Values.operator.port | first | default .Values.operator.port._default -}}
+---
+apiVersion: {{ template "common.capabilities.deployment.apiVersion" . }}
+kind: Deployment
+metadata:
+  name: {{ include ".helm.fullname" . }}
+spec:
+  replicas: {{ pluck .Values.global.env .Values.operator.replicaCount | first | default .Values.operator.replicaCount._default }}
+  selector:
+    matchLabels:
+      app: {{ include ".helm.fullname" . }}
+  template:
+    metadata:
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/deploymentSecret.yaml") . | sha256sum }}
+      {{- with .Values.operator.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        app: {{ include ".helm.fullname" . }}
+    spec:
+      serviceAccountName: {{ include ".helm.fullname" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+      - name: {{ tpl (index $.Values.imagePullSecrets 0 "name") $ }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.operator.podSecurityContext | nindent 8 }}
+      containers:
+      - name: operator
+        securityContext:
+          {{- toYaml .Values.operator.securityContext | nindent 12 }}
+        image: {{ .Values.werf.image.operator }}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: {{ $port }}
+        env:
+        - name: TZ
+          value: Europe/Moscow
+        envFrom:
+        - secretRef:
+            name: {{ include ".helm.fullname" . }}
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: {{ $port }}
+            scheme: HTTP
+          initialDelaySeconds: 6
+          timeoutSeconds: 1
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: {{ $port }}
+            scheme: HTTP
+          initialDelaySeconds: 6
+          timeoutSeconds: 1
+        resources:
+          {{- toYaml .Values.operator.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ tpl (pluck .Values.global.env .Values.operator.service | first | default .Values.operator.service._default) $ }}
+  labels:
+    prometheus.deckhouse.io/custom-target: pod-helper
+spec:
+  clusterIP: None
+  selector:
+    app: {{ include ".helm.fullname" . }}
+  ports:
+  - name: http
+    port: {{ $port }}

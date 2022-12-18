@@ -1,0 +1,12 @@
+---
+apiVersion: autoscaling.k8s.io/v1beta2
+kind: VerticalPodAutoscaler
+metadata:
+  name: {{ include ".helm.fullname" . }}
+spec:
+  targetRef:
+    apiVersion: {{ template "common.capabilities.deployment.apiVersion" . }}
+    kind: Deployment
+    name: {{ include ".helm.fullname" . }}
+  updatePolicy:
+    updateMode: "Off"
